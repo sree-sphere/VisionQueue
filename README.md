@@ -60,7 +60,12 @@ cp .env.example .env
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Start services
+# 4. Set up metrics directory for Prometheus multiprocess mode
+export PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc
+mkdir -p $PROMETHEUS_MULTIPROC_DIR
+rm -f $PROMETHEUS_MULTIPROC_DIR/*
+
+# 5. Start services
 # FastAPI app:
 uvicorn main:app --reload
 # Celery worker:
@@ -77,9 +82,10 @@ celery -A services.celery_worker.celery_app flower --port=5555
 # 1. Copy & configure .env for Docker
 cp .env.example .env
 
-# 2. Start all services (RabbitMQ, Redis, MinIO, Postgres, Worker, API)
+# 2. Start all services (RabbitMQ, Redis, MinIO, Postgres, Worker, RESTAPI)
 docker-compose up --build
 ```
+___
 
 # Usage notes
 
@@ -92,3 +98,24 @@ Ensure local services running:
  - PostgreSQL on localhost:5432
  - Prometheus (optional) on localhost:9090
  - Celery Flower (optional) on localhost:5555
+
+ ___
+ # Monitoring (Prometheus + Grafana)
+
+## Metrics
+
+`GET http://localhost:8000/metrics/`
+
+Queries includes:
+
+- image_task_success_total
+- image_task_failure_total
+- image_task_latency_seconds
+- webhook_success_total
+- webhook_failure_total
+- webhook_latency_seconds
+- celery_queue_depth
+
+Example: `curl -s http://localhost:8000/metrics | grep 'image_task_success_total'`
+
+Note: For docker use the container name `- targets: ['api:8000']`

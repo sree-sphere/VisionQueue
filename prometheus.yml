@@ -3,6 +3,8 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: "image-pipeline"
+  - job_name: 'fastapi'
+    metrics_path: "/metrics/"
     static_configs:
-      - targets: ["localhost:8001"]
+      - targets: ['localhost:8000']
+
