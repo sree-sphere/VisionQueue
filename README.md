@@ -23,6 +23,7 @@ An end‑to‑end asynchronous image classification pipeline using `Celery` (tas
 │   ├── lock                       # Lock files for synchronization
 │   └── wal/                       # Write-ahead logging
 ├── logs/ (git ignored log files)
+├── tests/                         # Unit and integration tests
 ├── imagenet_classes.txt           # 1,000 ImageNet labels
 ├── main.py                        # FastAPI entrypoint
 ├── prometheus.yml                 # Prometheus metrics config
