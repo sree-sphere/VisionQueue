@@ -10,43 +10,64 @@ from utils.config import (
     MINIO_BUCKET,
 )
 
-# ─── Parse endpoint (no scheme), handle formats like "localhost:9000" or "https://..."
-if not MINIO_ENDPOINT:
-    raise ValueError("MINIO_ENDPOINT is not set or is None")
-parsed = urlparse(MINIO_ENDPOINT if MINIO_ENDPOINT.startswith(("http://", "https://")) else f"http://{MINIO_ENDPOINT}")
-host = parsed.hostname
-port = parsed.port or (443 if parsed.scheme == "https" else 80)
-secure = (parsed.scheme == "https")
+# Global client cache
+_client = None
+_host = None
+_port = None
 
-logger.debug(f"Initializing Minio client → host={host}, port={port}, secure={secure}")
+# Parse endpoint (no scheme), handle formats like "localhost:9000" or "https://..."
+def init_minio_client():
+    if not MINIO_ENDPOINT:
+        raise ValueError("MINIO_ENDPOINT is not set or is None")
+    
+    parsed = urlparse(MINIO_ENDPOINT if MINIO_ENDPOINT.startswith(("http://", "https://")) else f"http://{MINIO_ENDPOINT}")
+    host = parsed.hostname
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    secure = (parsed.scheme == "https")
 
-client = Minio(
-    f"{host}:{port}",
-    access_key=MINIO_ACCESS_KEY,
-    secret_key=MINIO_SECRET_KEY,
-    secure=secure,
-)
+    logger.debug(f"Initializing Minio client -> host={host}, port={port}, secure={secure}")
 
-# ─── Verify connectivity
-try:
+    client = Minio(
+        f"{host}:{port}",
+        access_key=MINIO_ACCESS_KEY,
+        secret_key=MINIO_SECRET_KEY,
+        secure=secure,
+    )
+
+    # Verify connection
     client.list_buckets()
-    logger.info(f"Connected to MinIO at {host}:{port}")
-except Exception as e:
-    logger.critical(f"Cannot connect to MinIO at {host}:{port}: {e}")
-    raise
 
-# ─── Ensure bucket exists
-try:
+    # Ensure bucket exists
     if not client.bucket_exists(MINIO_BUCKET):
         client.make_bucket(MINIO_BUCKET)
-        logger.info(f"Created bucket '{MINIO_BUCKET}'")
-    else:
-        logger.debug(f"Bucket '{MINIO_BUCKET}' already exists")
-except S3Error as e:
-    logger.error(f"Bucket operation error on '{MINIO_BUCKET}': {e}")
-    raise
 
-# ─── Upload function
+    return client, host, port
+
+# Lazy-load MinIO client
+def get_minio_client():
+    global _client, _host, _port
+    if _client is None:
+        try:
+            _client, _host, _port = init_minio_client()
+            logger.info(f"Connected to MinIO at {_host}:{_port}")
+        except Exception as e:
+            logger.critical(f"Cannot connect to MinIO: {e}")
+            raise
+
+        # Ensure bucket exists
+        try:
+            if not _client.bucket_exists(MINIO_BUCKET):
+                _client.make_bucket(MINIO_BUCKET)
+                logger.info(f"Created bucket '{MINIO_BUCKET}'")
+            else:
+                logger.debug(f"Bucket '{MINIO_BUCKET}' already exists")
+        except S3Error as e:
+            logger.error(f"Bucket operation error on '{MINIO_BUCKET}': {e}")
+            raise
+
+    return _client, _host, _port
+
+# Upload function
 def upload_image(image_bytes: bytes, object_name: str, content_type: str = "image/jpeg") -> str:
     """
     Upload image to MinIO using object_name (uuid.ext).
@@ -54,6 +75,9 @@ def upload_image(image_bytes: bytes, object_name: str, content_type: str = "imag
     logger.info(f"Uploading '{object_name}' to bucket '{MINIO_BUCKET}'")
     stream = io.BytesIO(image_bytes)
     stream.seek(0)
+    
+    client, host, port = get_minio_client()
+
     try:
         client.put_object(
             MINIO_BUCKET,

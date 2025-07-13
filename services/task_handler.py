@@ -132,7 +132,7 @@ def send_webhook(self, full_result: dict, callback_url: str):
 
 def submit_pipeline(image_bytes: bytes, metadata: dict, callback_url: Optional[str] = None):
     """
-    Orchestrates: preprocess → classify → store_result → (optional send_webhook).
+    Orchestrates: preprocess -> classify -> store_result -> (optional send_webhook).
     Returns AsyncResult for the final task so result() always holds full_result.
     """
     try:

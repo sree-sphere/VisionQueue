@@ -1,5 +1,3 @@
-# main.py
-
 import os
 import shutil
 import uvicorn
@@ -25,8 +23,17 @@ else:
 def metrics():
     # Create a registry and merge multi-process files
     registry = CollectorRegistry()
-    multiprocess.MultiProcessCollector(registry)
-    data = generate_latest(registry)
+    try:
+        multiprocess.MultiProcessCollector(registry)
+        data = generate_latest(registry)
+        # If no multiproc data (empty), fall back to default REGISTRY
+        if not data.strip():
+            from prometheus_client import REGISTRY
+            data = generate_latest(REGISTRY)
+    except ValueError:
+        logger.warning("Multiprocess metrics not available; using default collector")
+        from prometheus_client import REGISTRY
+        data = generate_latest(REGISTRY)
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 @app.on_event("startup")

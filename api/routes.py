@@ -4,6 +4,7 @@ from services.storage import upload_image
 from services.task_handler import submit_pipeline
 from utils.logger import logger
 import uuid
+import json
 
 router = APIRouter()
 
@@ -11,7 +12,18 @@ router = APIRouter()
 async def upload_image_endpoint(
     file: UploadFile,
     background_tasks: BackgroundTasks,
-    callback_url: str = Query(None, title="Callback Webhook URL", description="Optional webhook URL to notify on task completion via POST", example="https://webhook.site/test-url"),
+    callback_url: str = Query(
+        default=None,
+        title="Callback Webhook URL",
+        description="Optional webhook URL to notify on task completion via POST",
+        example="https://webhook.site/test-url"
+    ),
+     metadata: str = Query(
+        default=None,
+        title="Image Metadata (JSON)",
+        description="Optional JSON string containing metadata about the image",
+        example='{"source": "user", "label": "test"}'
+    ),
 ):
     """
     Accepts an image, uploads to MinIO, and triggers the Celery pipeline.
@@ -35,15 +47,21 @@ async def upload_image_endpoint(
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
     # Prepare metadata for the pipeline
-    metadata = {
+    try:
+        metadata_dict = json.loads(metadata) if metadata else {}
+    except json.JSONDecodeError:
+        logger.error("Invalid metadata JSON")
+        raise HTTPException(status_code=400, detail="Invalid metadata JSON")
+
+    metadata_dict.update({
         "filename": file.filename,
         "object_name": object_name,
         "url": image_url
-    }
+    })
 
     # Trigger Celery pipeline
     logger.info(f"Received callback_url: {callback_url}")
-    async_result = submit_pipeline(contents, metadata, callback_url)
+    async_result = submit_pipeline(contents, metadata_dict, callback_url)
     if async_result is None or not hasattr(async_result, "id"):
         logger.error("Pipeline submission failed: async_result is None or missing 'id'")
         raise HTTPException(status_code=500, detail="Pipeline submission failed")
