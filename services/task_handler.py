@@ -5,11 +5,13 @@ Defines Celery tasks: preprocessing, classification, storage, webhook.
 import time
 import requests
 from celery import chain
+from typing import Optional
+from prometheus_client import Counter, Histogram, Gauge
+
 from services.celery_worker import celery_app
 from core.classifier import preprocess_image, classify
 from utils.logger import logger
 from utils.config import WEBHOOK_TIMEOUT
-from prometheus_client import Counter, Histogram, Gauge
 
 # Task metrics with labels
 TASK_SUCCESS = Counter("image_task_success_total", "Successful image tasks", ["task_name"])
@@ -128,7 +130,7 @@ def send_webhook(self, full_result: dict, callback_url: str):
     return full_result
 
 
-def submit_pipeline(image_bytes: bytes, metadata: dict, callback_url: str = None):
+def submit_pipeline(image_bytes: bytes, metadata: dict, callback_url: Optional[str] = None):
     """
     Orchestrates: preprocess → classify → store_result → (optional send_webhook).
     Returns AsyncResult for the final task so result() always holds full_result.

@@ -44,6 +44,9 @@ async def upload_image_endpoint(
     # Trigger Celery pipeline
     logger.info(f"Received callback_url: {callback_url}")
     async_result = submit_pipeline(contents, metadata, callback_url)
+    if async_result is None or not hasattr(async_result, "id"):
+        logger.error("Pipeline submission failed: async_result is None or missing 'id'")
+        raise HTTPException(status_code=500, detail="Pipeline submission failed")
     logger.info(f"Pipeline submitted: task_id={async_result.id}")
 
     return JSONResponse({"task_id": async_result.id})

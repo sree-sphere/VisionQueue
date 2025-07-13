@@ -1,5 +1,3 @@
-# services/storage.py
-
 import io
 from urllib.parse import urlparse
 from minio import Minio
@@ -13,6 +11,8 @@ from utils.config import (
 )
 
 # ─── Parse endpoint (no scheme), handle formats like "localhost:9000" or "https://..."
+if not MINIO_ENDPOINT:
+    raise ValueError("MINIO_ENDPOINT is not set or is None")
 parsed = urlparse(MINIO_ENDPOINT if MINIO_ENDPOINT.startswith(("http://", "https://")) else f"http://{MINIO_ENDPOINT}")
 host = parsed.hostname
 port = parsed.port or (443 if parsed.scheme == "https" else 80)

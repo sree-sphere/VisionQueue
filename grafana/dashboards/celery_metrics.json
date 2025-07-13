@@ -1,0 +1,60 @@
+{
+  "id": null,
+  "uid": "celery-metrics",
+  "title": "Celery & Webhook Metrics",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Preprocess Success",
+      "id": 1,
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "image_task_success_total{task_name=\"preprocess\"}", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Classify Success",
+      "id": 2,
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "image_task_success_total{task_name=\"classify_task\"}", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Store Success",
+      "id": 3,
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "image_task_success_total{task_name=\"store_result\"}", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Webhook Success",
+      "id": 4,
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "webhook_success_total", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 4 }
+    },
+    {
+      "type": "stat",
+      "title": "Webhook Failure",
+      "id": 5,
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "webhook_failure_total", "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 4 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook Latency (s)",
+      "id": 6,
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "webhook_latency_seconds_bucket", "refId": "A" }],
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "options": { "legend": { "displayMode": "table" } }
+    }
+  ]
+}
