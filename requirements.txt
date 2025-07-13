@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+celery[redis,rabbitmq]
+python-dotenv
+loguru
+boto3
+psycopg2-binary
+sqlalchemy
+prometheus_client
+torch
+torchvision
+Pillow
+requests
+minio

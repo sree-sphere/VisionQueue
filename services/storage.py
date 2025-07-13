@@ -1,0 +1,70 @@
+# services/storage.py
+
+import io
+from urllib.parse import urlparse
+from minio import Minio
+from minio.error import S3Error
+from loguru import logger
+from utils.config import (
+    MINIO_ENDPOINT,
+    MINIO_ACCESS_KEY,
+    MINIO_SECRET_KEY,
+    MINIO_BUCKET,
+)
+
+# ─── Parse endpoint (no scheme), handle formats like "localhost:9000" or "https://..."
+parsed = urlparse(MINIO_ENDPOINT if MINIO_ENDPOINT.startswith(("http://", "https://")) else f"http://{MINIO_ENDPOINT}")
+host = parsed.hostname
+port = parsed.port or (443 if parsed.scheme == "https" else 80)
+secure = (parsed.scheme == "https")
+
+logger.debug(f"Initializing Minio client → host={host}, port={port}, secure={secure}")
+
+client = Minio(
+    f"{host}:{port}",
+    access_key=MINIO_ACCESS_KEY,
+    secret_key=MINIO_SECRET_KEY,
+    secure=secure,
+)
+
+# ─── Verify connectivity
+try:
+    client.list_buckets()
+    logger.info(f"Connected to MinIO at {host}:{port}")
+except Exception as e:
+    logger.critical(f"Cannot connect to MinIO at {host}:{port}: {e}")
+    raise
+
+# ─── Ensure bucket exists
+try:
+    if not client.bucket_exists(MINIO_BUCKET):
+        client.make_bucket(MINIO_BUCKET)
+        logger.info(f"Created bucket '{MINIO_BUCKET}'")
+    else:
+        logger.debug(f"Bucket '{MINIO_BUCKET}' already exists")
+except S3Error as e:
+    logger.error(f"Bucket operation error on '{MINIO_BUCKET}': {e}")
+    raise
+
+# ─── Upload function
+def upload_image(image_bytes: bytes, object_name: str, content_type: str = "image/jpeg") -> str:
+    """
+    Upload image to MinIO using object_name (uuid.ext).
+    """
+    logger.info(f"Uploading '{object_name}' to bucket '{MINIO_BUCKET}'")
+    stream = io.BytesIO(image_bytes)
+    stream.seek(0)
+    try:
+        client.put_object(
+            MINIO_BUCKET,
+            object_name,  # use the unique uuid.ext here
+            data=stream,
+            length=len(image_bytes),
+            content_type=content_type,
+        )
+        logger.debug(f"Uploaded {object_name} ({len(image_bytes)} bytes)")
+    except S3Error as e:
+        logger.error(f"Failed to upload '{object_name}': {e}")
+        raise
+
+    return f"http://{host}:{port}/{MINIO_BUCKET}/{object_name}"
