@@ -18,11 +18,10 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install uv
-          uv pip install -r requirements.txt
-          uv pip install pytest pytest-cov coveralls
+          uv pip install --system pytest pytest-cov coveralls python-dotenv
 
       - name: Run Tests
-        run: pytest
+        run: dotenv run -- pytest --cov=.
 
       - name: Upload Coverage to Coveralls
         env:
