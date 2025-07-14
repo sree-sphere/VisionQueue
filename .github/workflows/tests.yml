@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Create CI docker-compose file
+      - name: Create CI docker compose file
         run: |
           cat << EOF > docker-compose.ci.yml
           version: '3.8'
@@ -68,7 +68,7 @@ jobs:
 
       - name: Start services
         run: |
-          docker-compose -f docker-compose.ci.yml up -d
+          docker compose -f docker-compose.ci.yml up -d
           
           # Wait for all services to be healthy
           echo "Waiting for services to be healthy..."
@@ -76,9 +76,9 @@ jobs:
           counter=0
           
           while [ $counter -lt $timeout ]; do
-            postgres_healthy=$(docker-compose -f docker-compose.ci.yml ps postgres | grep "healthy" | wc -l)
-            redis_healthy=$(docker-compose -f docker-compose.ci.yml ps redis | grep "healthy" | wc -l)
-            minio_healthy=$(docker-compose -f docker-compose.ci.yml ps minio | grep "healthy" | wc -l)
+            postgres_healthy=$(docker compose -f docker-compose.ci.yml ps postgres | grep "healthy" | wc -l)
+            redis_healthy=$(docker compose -f docker-compose.ci.yml ps redis | grep "healthy" | wc -l)
+            minio_healthy=$(docker compose -f docker-compose.ci.yml ps minio | grep "healthy" | wc -l)
             
             if [ "$postgres_healthy" -eq 1 ] && [ "$redis_healthy" -eq 1 ] && [ "$minio_healthy" -eq 1 ]; then
               echo "All services are healthy!"
@@ -92,8 +92,8 @@ jobs:
           
           if [ $counter -ge $timeout ]; then
             echo "Services failed to become healthy within $timeout seconds"
-            docker-compose -f docker-compose.ci.yml ps
-            docker-compose -f docker-compose.ci.yml logs
+            docker compose -f docker-compose.ci.yml ps
+            docker compose -f docker-compose.ci.yml logs
             exit 1
           fi
 
@@ -171,4 +171,4 @@ jobs:
       - name: Clean up
         if: always()
         run: |
-          docker-compose -f docker-compose.ci.yml down -v
+          docker compose -f docker-compose.ci.yml down -v
