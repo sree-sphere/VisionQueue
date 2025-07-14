@@ -12,25 +12,25 @@ jobs:
     services:
       minio:
         image: minio/minio:latest
-        # expose the API and console ports
-        ports:
-          - 9000:9000
-          - 9011:9001
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        # no entrypoint override! just a healthcheck
         options: >-
-          --health-cmd="curl -fs http://localhost:9011/minio/health/ready || exit 1"
+          --health-cmd="curl -fs http://localhost:9000/minio/health/ready || exit 1"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=5
+          --entrypoint /bin/sh
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9000:9000
+          - 9011:9001
 
       rabbitmq:
         image: rabbitmq:3-management
         ports:
           - 5672:5672
           - 15672:15672
+
 
     steps:
       - name: Checkout code
