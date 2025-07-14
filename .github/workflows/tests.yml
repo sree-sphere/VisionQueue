@@ -57,7 +57,7 @@ jobs:
           MODEL_NAME=resnet18
           CELERY_BROKER_URL=redis://localhost:6379/0
           CELERY_RESULT_BACKEND=redis://localhost:6379/0
-          MINIO_ENDPOINT=minio:9000
+          MINIO_ENDPOINT=host.network.docker:9000
           MINIO_BUCKET=images
           MINIO_ACCESS_KEY=minioadmin
           MINIO_SECRET_KEY=minioadmin
@@ -87,7 +87,7 @@ jobs:
           from minio import Minio
           from minio.error import S3Error
           try:
-              client = Minio('minio:9000', 'minioadmin', 'minioadmin', secure=False)
+              client = Minio('host.network.docker:9000', 'minioadmin', 'minioadmin', secure=False)
               if not client.bucket_exists('images'):
                   client.make_bucket('images')
               print('MinIO bucket created')
