@@ -38,14 +38,18 @@ jobs:
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
         ports:
           - 9000:9000
-        # options: >-
-        #   --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-        #   --health-interval 10s
-        #   --health-timeout 5s
-        #   --health-retries 5
-
+          - 9001:9001
+        # Use a different health check approach
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 10
+          --health-start-period 30s
 
     steps:
       - name: Checkout Code
@@ -85,6 +89,38 @@ jobs:
       - name: Create metrics directory
         run: mkdir -p /tmp/metrics-multiproc
 
+      # Wait for services to be ready
+      - name: Wait for services
+        run: |
+          # Wait for PostgreSQL
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          
+          # Wait for Redis
+          until redis-cli -h localhost -p 6379 ping; do
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+          
+          # Wait for MinIO with more robust checking
+          timeout=120
+          counter=0
+          until curl -f http://localhost:9000/minio/health/live > /dev/null 2>&1; do
+            if [ $counter -ge $timeout ]; then
+              echo "MinIO failed to start within $timeout seconds"
+              # Debug information
+              docker ps -a
+              docker logs $(docker ps -aq --filter "ancestor=minio/minio:latest") || true
+              exit 1
+            fi
+            echo "Waiting for MinIO... ($counter/$timeout)"
+            sleep 2
+            counter=$((counter + 2))
+          done
+          echo "All services are ready!"
+
       - name: Initialize MinIO bucket
         run: |
           pip install minio==7.2.4
@@ -92,21 +128,37 @@ jobs:
           import time
           from minio import Minio
           from minio.error import S3Error
+          import sys
 
+          max_retries = 10
           client = Minio('localhost:9000', 'minioadmin', 'minioadmin', secure=False)
 
-          for i in range(5):
+          for i in range(max_retries):
               try:
+                  # Test basic connectivity first
+                  buckets = client.list_buckets()
+                  print(f'Connected to MinIO successfully. Found {len(buckets)} buckets.')
+                  
+                  # Create bucket if it doesn't exist
                   if not client.bucket_exists('images'):
                       client.make_bucket('images')
-                  print('MinIO bucket is ready')
-                  break
+                      print('Created MinIO bucket: images')
+                  else:
+                      print('MinIO bucket already exists: images')
+                  
+                  # Test bucket access
+                  client.list_objects('images', recursive=True)
+                  print('MinIO bucket is ready and accessible')
+                  sys.exit(0)
+                  
               except Exception as e:
-                  print(f'Retrying MinIO... {i+1}/5: {e}')
-                  time.sleep(3)
-          else:
-              raise RuntimeError('MinIO failed after retries')
-                    "
+                  print(f'Attempt {i+1}/{max_retries} failed: {e}')
+                  if i < max_retries - 1:
+                      time.sleep(5)
+                  else:
+                      print('All attempts failed. MinIO setup failed.')
+                      sys.exit(1)
+          "
 
       - name: Set Working Directory
         run: cd $GITHUB_WORKSPACE
