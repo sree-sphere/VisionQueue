@@ -5,6 +5,47 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      # Add PostgreSQL service
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # Add Redis service
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # Add MinIO service
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+        ports:
+          - 9000:9000
+        command: server /data
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout Code
@@ -15,11 +56,49 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Create CI environment file
+        run: |
+          cat << EOF > .env.ci
+          MODEL_NAME=resnet18
+          CELERY_BROKER_URL=redis://localhost:6379/0
+          CELERY_RESULT_BACKEND=redis://localhost:6379/0
+          MINIO_ENDPOINT=localhost:9000
+          MINIO_BUCKET=images
+          MINIO_ACCESS_KEY=minioadmin
+          MINIO_SECRET_KEY=minioadmin
+          PG_HOST=localhost
+          PG_PORT=5432
+          PG_USER=test_user
+          PG_PASSWORD=test_pass
+          PG_DB=test_db
+          PROM_PORT=8001
+          WEBHOOK_TIMEOUT=5
+          PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc
+          EOF
+
       - name: Install Dependencies
         run: |
           pip install uv
           uv pip install --system "python-dotenv[cli]" pytest pytest-cov coveralls httpx
           uv pip install --system -r requirements.txt
+
+      - name: Create metrics directory
+        run: mkdir -p /tmp/metrics-multiproc
+
+      - name: Initialize MinIO bucket
+        run: |
+          pip install minio
+          python -c "
+          from minio import Minio
+          from minio.error import S3Error
+          try:
+              client = Minio('localhost:9000', 'minioadmin', 'minioadmin', secure=False)
+              if not client.bucket_exists('images'):
+                  client.make_bucket('images')
+              print('MinIO bucket created')
+          except S3Error as exc:
+              print('Error creating bucket:', exc)
+          "
 
       - name: Run Tests
         run: dotenv -f .env.ci run -- pytest --cov=.
