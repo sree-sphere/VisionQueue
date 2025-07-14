@@ -11,10 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       minio:
-        image: minio/minio server /data --console-address :9001
+        image: minio/minio
         ports:
           - 9000:9000
-          - 9001:9001
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
@@ -23,6 +22,7 @@ jobs:
           --health-interval 5s
           --health-retries 5
           --health-timeout 10s
+
 
 
       rabbitmq:
