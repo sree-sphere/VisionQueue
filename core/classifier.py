@@ -44,7 +44,10 @@ def preprocess_image(image_bytes: bytes) -> bytes:
     Transforms an image and returns serialized tensor as bytes.
     """
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    tensor = TRANSFORM(img).unsqueeze(0)  # batch dim
+    tensor = TRANSFORM(img)
+    if not isinstance(tensor, torch.Tensor):
+        tensor = T.ToTensor()(img)
+    tensor = tensor.unsqueeze(0)  # batch dim
     return tensor.numpy().astype(np.float32).tobytes()
 
 def classify(tensor_bytes: bytes):

@@ -37,6 +37,8 @@ def init_minio_client():
         secure=secure,
     )
 
+    if not MINIO_BUCKET:
+        raise ValueError("MINIO_BUCKET is not set or is None")
     try:
         # Check if bucket exists; create if missing
         if not client.bucket_exists(MINIO_BUCKET):
@@ -67,6 +69,8 @@ def upload_image(image_bytes: bytes, object_name: str, content_type: str = "imag
     """
     Upload image to MinIO using object_name (uuid.ext).
     """
+    if not isinstance(MINIO_BUCKET, str) or not MINIO_BUCKET:
+        raise ValueError("MINIO_BUCKET must be a non-empty string")
     logger.info(f"Uploading '{object_name}' to bucket '{MINIO_BUCKET}'")
     stream = io.BytesIO(image_bytes)
     stream.seek(0)

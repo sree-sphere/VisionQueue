@@ -5,7 +5,6 @@ help:
 	@echo "  install      - Install dependencies"
 	@echo "  lint         - Run flake8 and black checks"
 	@echo "  test         - Run all tests with coverage"
-	@echo "  test-ci      - Run tests with MinIO endpoint set for CI"
 	@echo "  coverage     - Show coverage report"
 	@echo "  format       - Format code using black"
 	@echo "  docker-up    - Start Docker services"

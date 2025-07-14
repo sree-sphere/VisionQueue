@@ -29,6 +29,9 @@ async def upload_image_endpoint(
     Accepts an image, uploads to MinIO, and triggers the Celery pipeline.
     """
     contents = await file.read()
+    if not file.filename:
+        logger.error("Uploaded file has no filename")
+        raise HTTPException(status_code=400, detail="Uploaded file has no filename")
     ext = file.filename.split(".")[-1].lower()
 
     if ext not in ("jpg", "jpeg", "png"):

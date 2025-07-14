@@ -24,7 +24,6 @@ celery_app.conf.update(
     task_default_routing_key="image",
 )
 
-# Ensure logger is available in tasks
-celery_app.logger = logger
+# Use your custom logger directly in your tasks as needed
 import services.task_handler
 print("Registered tasks:", celery_app.tasks.keys())
