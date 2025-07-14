@@ -11,17 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     services:
       minio:
-        image: minio/minio
+        image: minio/minio server /data --console-address :9001
         ports:
           - 9000:9000
           - 9001:9001
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
-        # ✅ Valid syntax: Use `options` to override entrypoint and args
         options: >-
-          --entrypoint /bin/sh
-          -c "minio server /data --console-address :9001"
+          --health-cmd "curl -f http://localhost:9000/minio/health/ready || exit 1"
+          --health-interval 5s
+          --health-retries 5
+          --health-timeout 10s
+
 
       rabbitmq:
         image: rabbitmq:3-management
