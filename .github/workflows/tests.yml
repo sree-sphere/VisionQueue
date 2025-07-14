@@ -15,13 +15,13 @@ jobs:
         # expose the API and console ports
         ports:
           - 9000:9000
-          - 9001:9001
+          - 9011:9001
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
         # no entrypoint override! just a healthcheck
         options: >-
-          --health-cmd="curl -fs http://localhost:9001/minio/health/ready || exit 1"
+          --health-cmd="curl -fs http://localhost:9011/minio/health/ready || exit 1"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=5
@@ -57,7 +57,7 @@ jobs:
 
       - name: Wait for MinIO to be healthy
         run: |
-          until curl -fs http://localhost:9001/minio/health/ready; do
+          until curl -fs http://localhost:9011/minio/health/ready; do
             echo "Waiting for MinIO…"
             sleep 2
           done
