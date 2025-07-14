@@ -34,7 +34,7 @@ jobs:
 
       # Add MinIO service
       minio:
-        image: ghcr.io/sree-sphere/minio-default:latest
+        image: minio:minio
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
