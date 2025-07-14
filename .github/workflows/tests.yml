@@ -40,8 +40,7 @@ jobs:
           MINIO_ROOT_PASSWORD: minioadmin
         ports:
           - 9000:9000
-        
-
+      
 
     steps:
       - name: Checkout Code
