@@ -6,30 +6,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      minio:
-        image: minio/minio
-        ports:
-          - 9010:9000
-        env:
-          MINIO_ACCESS_KEY: minioadmin
-          MINIO_SECRET_KEY: minioadmin
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/ready || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -39,9 +15,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Create Prometheus multiproc dir
-        run: mkdir -p /tmp/metrics-multiproc
-
       - name: Install Dependencies
         run: |
           pip install uv
@@ -49,14 +22,7 @@ jobs:
           uv pip install --system -r requirements.txt
 
       - name: Run Tests
-        env:
-          MINIO_ENDPOINT: http://localhost:9010
-          MINIO_BUCKET: images
-          MINIO_ACCESS_KEY: minioadmin
-          MINIO_SECRET_KEY: minioadmin
-          PROMETHEUS_MULTIPROC_DIR: /tmp/metrics-multiproc
-        run: |
-          dotenv -f .env.ci run -- pytest --cov=.
+        run: dotenv -f .env.ci run -- pytest --cov=.
 
       - name: Upload Coverage to Coveralls
         env:

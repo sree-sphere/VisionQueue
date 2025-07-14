@@ -26,9 +26,6 @@ format:
 test:
 	dotenv run -- PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc pytest --cov=.
 
-test-ci:
-	MINIO_ENDPOINT=http://localhost:9010 PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc pytest --cov=.
-
 coverage:
 	coverage report -m
 	coverage html

@@ -20,22 +20,18 @@ def test_metrics_endpoint(client):
     assert response.status_code == 200
     assert "dummy_metric_total" in response.text
 
-
 def test_metrics_endpoint_value_error_path(client, monkeypatch):
     """
     Simulates fallback to default REGISTRY if multiprocess setup fails.
     """
+    def mock_collect(*args, **kwargs):
+        return False
 
-    def mock_multi_fail(registry):
-        raise ValueError("Simulated multiprocess failure")
-
-    monkeypatch.setattr("main.multiprocess.MultiProcessCollector", mock_multi_fail)
+    monkeypatch.setattr("main.collect_multiprocess_metrics", mock_collect)
 
     response = client.get("/metrics")
     assert response.status_code == 200
-    # Body should not be empty even when multiproc fails
     assert response.text.strip() != ""
-
 
 def test_startup_event_runs_without_error():
     # Simply ensuring it does not raise any exceptions
