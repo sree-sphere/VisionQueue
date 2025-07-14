@@ -70,6 +70,7 @@ cp .env.example .env
 pip install -r requirements.txt
 
 # 4. Set up metrics directory for Prometheus multiprocess mode
+mkdir -p /tmp/metrics-multiproc
 export PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc
 mkdir -p $PROMETHEUS_MULTIPROC_DIR
 rm -f $PROMETHEUS_MULTIPROC_DIR/*
