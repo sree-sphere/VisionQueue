@@ -23,7 +23,7 @@ format:
 	black .
 
 test:
-	PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc pytest --cov=.
+	dotenv run -- PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc pytest --cov=.
 
 coverage:
 	coverage report -m
