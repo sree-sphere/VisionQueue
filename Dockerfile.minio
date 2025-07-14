@@ -1,5 +1,3 @@
-# Dockerfile.minio
 FROM minio/minio:latest
+ENTRYPOINT ["minio", "server", "/data"]
 
-ENTRYPOINT ["minio"]
-CMD ["server", "/data"]
