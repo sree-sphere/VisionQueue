@@ -1,0 +1,41 @@
+[project]
+name = "async-image-classifier"
+version = "0.1.0"
+description = "Asynchronous image classification pipeline using FastAPI, Celery, and MinIO."
+authors = [{ name = "sree-sphere" }]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.12"
+
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "celery[redis,rabbitmq]",
+    "python-dotenv",
+    "loguru",
+    "boto3",
+    "psycopg2-binary",
+    "sqlalchemy",
+    "prometheus_client",
+    "torch",
+    "torchvision",
+    "Pillow",
+    "requests",
+    "minio",
+    "numpy",
+    "prometheus-fastapi-instrumentator",
+    "python-multipart"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--strict-markers --tb=short --disable-warnings --cov=core --cov=services --cov=api --cov-report=term --cov-report=xml"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

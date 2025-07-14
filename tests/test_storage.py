@@ -69,7 +69,7 @@ def test_upload_image_success(mock_get_client):
 def test_upload_image_failure(mock_get_client):
     mock_client = mock.MagicMock()
     mock_client.put_object.side_effect = S3Error("Upload failed", "", "", "", "", "", "")
-    mock_get_client.return_value = (mock_client, "localhost", 9000)
+    mock_get_client.return_value = (mock_client, "localhost", 1)
 
     data = b"dummy image bytes"
     with pytest.raises(S3Error):

@@ -1,3 +1,11 @@
+## Status
+
+| Type      | Badge |
+|-----------|-------|
+| Tests     | [![Tests](https://img.shields.io/github/actions/workflow/status/sree-sphere/async-image-classifier/tests.yml?branch=main&label=tests&logo=github)](https://github.com/sree-sphere/async-image-classifier/actions/workflows/tests.yml) |
+| Coverage  | [![Coverage](https://img.shields.io/coveralls/github/sree-sphere/async-image-classifier/main?style=flat-square&logo=coveralls&color=brightgreen)](https://coveralls.io/github/sree-sphere/async-image-classifier?branch=main) |
+
+
 # Image Classifier
 An end‑to‑end asynchronous image classification pipeline using `Celery` (task queue orchestration), `FastAPI` (for RestAPI), `MinIO` (S3‑compatible, for image storage), and `PostgreSQL` (result persistence), `Prometheus` (for metrics), `webhook` (for notifications).
 
@@ -119,4 +127,4 @@ Queries includes:
 
 Example: `curl -s http://localhost:8000/metrics | grep 'image_task_success_total'`
 
-Note: For docker use the container name `- targets: ['api:8000']`
+Note: For docker use, change prometheus port to the container name `- targets: ['api:8000']`

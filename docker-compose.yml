@@ -1,11 +1,10 @@
-version: "3.8"
-
 services:
   api:
     build:
       context: .
       target: base
     command: uvicorn main:app --host 0.0.0.0 --port 8000
+    container_name: api
     ports:
       - "8000:8000"
     env_file:
@@ -16,8 +15,16 @@ services:
       - minio
     environment:
       - PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc
+      - ./logs:/app/logs
     volumes:
       - prometheus_multiproc:/tmp/metrics-multiproc
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 10s
+
 
   worker:
     build:
@@ -53,7 +60,7 @@ services:
       - "6379:6379"
 
   postgres:
-    image: postgres:15
+    image: postgres:14
     environment:
       POSTGRES_DB: ${PG_DB}
       POSTGRES_USER: ${PG_USER}
@@ -86,17 +93,20 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   grafana:
-    image: grafana/grafana:9.5.4
+    image: grafana/grafana:10.3.1
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_PATHS_PROVISIONING: /etc/grafana/provisioning
       GF_DASHBOARDS_JSON_ENABLED: "true"
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning

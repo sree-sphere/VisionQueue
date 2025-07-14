@@ -5,9 +5,11 @@ data/*
 !data/*.jpeg
 !data/*.png
 .env
+*.egg-info/
 
 # Test coverage
 htmlcov/
 .coverage*
+!.coveragerc
 *cache/
 .tox/

@@ -19,8 +19,11 @@ _port = None
 def init_minio_client():
     if not MINIO_ENDPOINT:
         raise ValueError("MINIO_ENDPOINT is not set or is None")
-    
-    parsed = urlparse(MINIO_ENDPOINT if MINIO_ENDPOINT.startswith(("http://", "https://")) else f"http://{MINIO_ENDPOINT}")
+
+    parsed = urlparse(
+        MINIO_ENDPOINT if MINIO_ENDPOINT.startswith(("http://", "https://"))
+        else f"http://{MINIO_ENDPOINT}"
+    )
     host = parsed.hostname
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     secure = (parsed.scheme == "https")
@@ -34,12 +37,16 @@ def init_minio_client():
         secure=secure,
     )
 
-    # Verify connection
-    client.list_buckets()
-
-    # Ensure bucket exists
-    if not client.bucket_exists(MINIO_BUCKET):
-        client.make_bucket(MINIO_BUCKET)
+    try:
+        # Check if bucket exists; create if missing
+        if not client.bucket_exists(MINIO_BUCKET):
+            client.make_bucket(MINIO_BUCKET)
+            logger.info(f"Created bucket '{MINIO_BUCKET}'")
+        else:
+            logger.debug(f"Bucket '{MINIO_BUCKET}' already exists")
+    except S3Error as e:
+        logger.error(f"Bucket operation failed: {e}")
+        raise
 
     return client, host, port
 
@@ -53,18 +60,6 @@ def get_minio_client():
         except Exception as e:
             logger.critical(f"Cannot connect to MinIO: {e}")
             raise
-
-        # Ensure bucket exists
-        try:
-            if not _client.bucket_exists(MINIO_BUCKET):
-                _client.make_bucket(MINIO_BUCKET)
-                logger.info(f"Created bucket '{MINIO_BUCKET}'")
-            else:
-                logger.debug(f"Bucket '{MINIO_BUCKET}' already exists")
-        except S3Error as e:
-            logger.error(f"Bucket operation error on '{MINIO_BUCKET}': {e}")
-            raise
-
     return _client, _host, _port
 
 # Upload function

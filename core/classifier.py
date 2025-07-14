@@ -14,11 +14,15 @@ import numpy as np
 # Load model once
 def get_model():
     try:
-        model = getattr(models, MODEL_NAME)(pretrained=True)
+        model_fn = getattr(models, MODEL_NAME)
+        weights_enum = getattr(models, f"{MODEL_NAME.upper()}_Weights", None)
+        logger.info(f"Loading model: {MODEL_NAME} with weights: {weights_enum}")
+        weights = weights_enum.DEFAULT if weights_enum else None
+        model = model_fn(weights=weights)
         model.eval()
         return model
     except AttributeError as e:
-        logger.error(f"Model {MODEL_NAME} not found in torchvision.models")
+        logger.error(f"Model {MODEL_NAME} not found or has no default weights in torchvision.models")
         raise e
 
 MODEL = get_model()

@@ -1,14 +1,32 @@
+# API
 fastapi
 uvicorn[standard]
-celery[redis,rabbitmq]
 python-dotenv
 loguru
-boto3
-psycopg2-binary
-sqlalchemy
-prometheus_client
+requests
+python-multipart
+
+# ML
 torch
 torchvision
 Pillow
-requests
+numpy
+
+# Database
+boto3
+psycopg2-binary
+sqlalchemy
 minio
+
+# Monitoring, asynchronous tasks, and distributed task queue
+celery[redis,rabbitmq]
+flower
+
+# Monitoring
+prometheus_client
+prometheus-fastapi-instrumentator
+
+# Testing & Coverage
+pytest
+pytest-cov
+coveralls
