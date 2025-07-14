@@ -15,8 +15,8 @@ services:
       - minio
     environment:
       - PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc
-      - ./logs:/app/logs
     volumes:
+      - ./logs:/app/logs
       - prometheus_multiproc:/tmp/metrics-multiproc
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
@@ -78,7 +78,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     ports:
       - "9000:9000"
-      - "9001:9001"
+      - "9011:9001"
     volumes:
       - minio_data:/data
 
