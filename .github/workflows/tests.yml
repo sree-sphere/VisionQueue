@@ -5,52 +5,7 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      # Add PostgreSQL service
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      # Add Redis service
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      # Add MinIO service
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-          MINIO_ACCESS_KEY: minioadmin
-          MINIO_SECRET_KEY: minioadmin
-        ports:
-          - 9000:9000
-          - 9001:9001
-        # Use a different health check approach
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 30s
-          --health-timeout 10s
-          --health-retries 10
-          --health-start-period 30s
-
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -59,6 +14,88 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
+
+      - name: Create CI docker-compose file
+        run: |
+          cat << EOF > docker-compose.ci.yml
+          version: '3.8'
+          services:
+            postgres:
+              image: postgres:14
+              environment:
+                POSTGRES_DB: test_db
+                POSTGRES_USER: test_user
+                POSTGRES_PASSWORD: test_pass
+              ports:
+                - "5432:5432"
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U test_user"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+
+            redis:
+              image: redis:7
+              ports:
+                - "6379:6379"
+              healthcheck:
+                test: ["CMD", "redis-cli", "ping"]
+                interval: 10s
+                timeout: 3s
+                retries: 5
+
+            minio:
+              image: minio/minio:latest
+              command: server /data --console-address ":9001"
+              environment:
+                MINIO_ROOT_USER: minioadmin
+                MINIO_ROOT_PASSWORD: minioadmin
+              ports:
+                - "9000:9000"
+                - "9001:9001"
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+                interval: 30s
+                timeout: 10s
+                retries: 5
+                start_period: 30s
+              volumes:
+                - minio_data:/data
+
+          volumes:
+            minio_data:
+          EOF
+
+      - name: Start services
+        run: |
+          docker-compose -f docker-compose.ci.yml up -d
+          
+          # Wait for all services to be healthy
+          echo "Waiting for services to be healthy..."
+          timeout=300
+          counter=0
+          
+          while [ $counter -lt $timeout ]; do
+            postgres_healthy=$(docker-compose -f docker-compose.ci.yml ps postgres | grep "healthy" | wc -l)
+            redis_healthy=$(docker-compose -f docker-compose.ci.yml ps redis | grep "healthy" | wc -l)
+            minio_healthy=$(docker-compose -f docker-compose.ci.yml ps minio | grep "healthy" | wc -l)
+            
+            if [ "$postgres_healthy" -eq 1 ] && [ "$redis_healthy" -eq 1 ] && [ "$minio_healthy" -eq 1 ]; then
+              echo "All services are healthy!"
+              break
+            fi
+            
+            echo "Waiting for services... ($counter/$timeout)"
+            sleep 5
+            counter=$((counter + 5))
+          done
+          
+          if [ $counter -ge $timeout ]; then
+            echo "Services failed to become healthy within $timeout seconds"
+            docker-compose -f docker-compose.ci.yml ps
+            docker-compose -f docker-compose.ci.yml logs
+            exit 1
+          fi
 
       - name: Create CI environment file
         run: |
@@ -89,38 +126,6 @@ jobs:
       - name: Create metrics directory
         run: mkdir -p /tmp/metrics-multiproc
 
-      # Wait for services to be ready
-      - name: Wait for services
-        run: |
-          # Wait for PostgreSQL
-          until pg_isready -h localhost -p 5432 -U test_user; do
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
-          
-          # Wait for Redis
-          until redis-cli -h localhost -p 6379 ping; do
-            echo "Waiting for Redis..."
-            sleep 2
-          done
-          
-          # Wait for MinIO with more robust checking
-          timeout=120
-          counter=0
-          until curl -f http://localhost:9000/minio/health/live > /dev/null 2>&1; do
-            if [ $counter -ge $timeout ]; then
-              echo "MinIO failed to start within $timeout seconds"
-              # Debug information
-              docker ps -a
-              docker logs $(docker ps -aq --filter "ancestor=minio/minio:latest") || true
-              exit 1
-            fi
-            echo "Waiting for MinIO... ($counter/$timeout)"
-            sleep 2
-            counter=$((counter + 2))
-          done
-          echo "All services are ready!"
-
       - name: Initialize MinIO bucket
         run: |
           pip install minio==7.2.4
@@ -130,16 +135,10 @@ jobs:
           from minio.error import S3Error
           import sys
 
-          max_retries = 10
           client = Minio('localhost:9000', 'minioadmin', 'minioadmin', secure=False)
 
-          for i in range(max_retries):
+          for i in range(10):
               try:
-                  # Test basic connectivity first
-                  buckets = client.list_buckets()
-                  print(f'Connected to MinIO successfully. Found {len(buckets)} buckets.')
-                  
-                  # Create bucket if it doesn't exist
                   if not client.bucket_exists('images'):
                       client.make_bucket('images')
                       print('Created MinIO bucket: images')
@@ -147,23 +146,18 @@ jobs:
                       print('MinIO bucket already exists: images')
                   
                   # Test bucket access
-                  client.list_objects('images', recursive=True)
+                  list(client.list_objects('images', recursive=True))
                   print('MinIO bucket is ready and accessible')
-                  sys.exit(0)
+                  break
                   
               except Exception as e:
-                  print(f'Attempt {i+1}/{max_retries} failed: {e}')
-                  if i < max_retries - 1:
-                      time.sleep(5)
+                  print(f'Attempt {i+1}/10 failed: {e}')
+                  if i < 9:
+                      time.sleep(3)
                   else:
-                      print('All attempts failed. MinIO setup failed.')
+                      print('All attempts failed')
                       sys.exit(1)
           "
-
-      - name: Set Working Directory
-        run: cd $GITHUB_WORKSPACE
-        env:
-          PYTHONPATH: ${{ github.workspace }}
 
       - name: Run Tests
         run: |
@@ -173,3 +167,8 @@ jobs:
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: coveralls
+
+      - name: Clean up
+        if: always()
+        run: |
+          docker-compose -f docker-compose.ci.yml down -v
