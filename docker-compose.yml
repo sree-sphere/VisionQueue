@@ -78,7 +78,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     ports:
       - "9000:9000"
-      - "9011:9001"
+      - "9001:9001"
     volumes:
       - minio_data:/data
 

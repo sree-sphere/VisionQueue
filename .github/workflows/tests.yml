@@ -1,87 +1,30 @@
 name: Run Tests and Coverage
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+on: [push, pull_request]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      minio:
-        image: minio/minio:latest
-        options: >-
-          --health-cmd="curl -fs http://localhost:9000/minio/health/ready || exit 1"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=5
-          --entrypoint /bin/sh
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports:
-          - 9000:9000
-          - 9011:9001
-
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-          - 15672:15672
-
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           pip install uv
-          uv pip install --system "python-dotenv[cli]" pytest pytest-cov coveralls httpx
+          uv pip install --system "python-dotenv[cli]" pytest pytest-cov coveralls
           uv pip install --system -r requirements.txt
 
-      - name: Set ENV vars
-        run: |
-          echo "MINIO_ENDPOINT=localhost:9000" >> $GITHUB_ENV
-          echo "MINIO_ACCESS_KEY=minioadmin" >> $GITHUB_ENV
-          echo "MINIO_SECRET_KEY=minioadmin" >> $GITHUB_ENV
-          echo "CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//" >> $GITHUB_ENV
-          echo "PROMETHEUS_MULTIPROC_DIR=/tmp/metrics-multiproc" >> $GITHUB_ENV
-
-      - name: Wait for MinIO to be healthy
-        run: |
-          until curl -fs http://localhost:9011/minio/health/ready; do
-            echo "Waiting for MinIO…"
-            sleep 2
-          done
-
-      - name: Create bucket
-        run: |
-          wget -qO /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc
-          chmod +x /usr/local/bin/mc
-          mc alias set localminio http://localhost:9000 minioadmin minioadmin
-          mc mb localminio/images || true
-
-      - name: Make metrics dir
-        run: mkdir -p /tmp/metrics-multiproc
-
-      - name: Start Celery worker
-        run: |
-          celery -A services.celery_worker.celery_app worker \
-            --loglevel=info \
-            --broker=amqp://guest:guest@localhost:5672// &
-
-      - name: Run tests
+      - name: Run Tests
         run: dotenv -f .env.ci run -- pytest --cov=.
 
-      - name: Upload to Coveralls
+      - name: Upload Coverage to Coveralls
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: coveralls
