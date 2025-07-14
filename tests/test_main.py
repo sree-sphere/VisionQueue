@@ -1,3 +1,4 @@
+# tests/test_main.py
 import time
 import main
 from prometheus_client import Counter

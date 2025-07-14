@@ -1,3 +1,4 @@
+# tests/test_classifier.py
 import pytest
 from core import classifier
 import numpy as np

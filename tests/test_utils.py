@@ -1,3 +1,4 @@
+# tests/test_utils.py
 import os
 import io
 import time
@@ -13,8 +14,6 @@ def log_capture():
     yield buf
     logger.remove(handler_id)
 
-
-# Test for utils/config.py
 
 def test_log_env_var_required_missing(log_capture):
     key = "MISSING_REQUIRED_KEY"
@@ -49,8 +48,6 @@ def test_log_env_var_present(log_capture):
     assert val == "dummy_value"
     assert f"{key}=dummy_value" in log_output
 
-
-# Test for utils/logger.py
 
 def test_logger_stdout_capture():
     log_output = io.StringIO()
