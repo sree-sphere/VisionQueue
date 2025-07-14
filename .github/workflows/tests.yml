@@ -1,3 +1,4 @@
+# .github/workflows/tests.yml
 name: Run Tests and Coverage
 
 on:
@@ -10,7 +11,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      # Use the official multi‑arch MinIO image
       minio:
         image: minio/minio:latest
         ports:
@@ -23,11 +23,7 @@ jobs:
           --health-interval=5s
           --health-retries=5
           --health-timeout=10s
-          # override entrypoint and start the server
-          --entrypoint=/bin/sh
-          # everything after the "--" is the container‐CMD
-          -- 
-          -c "minio server /data --console-address :9001"
+          --entrypoint="sh -c 'minio server /data --console-address :9001'"
 
       rabbitmq:
         image: rabbitmq:3-management
