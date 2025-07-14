@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       minio:
-        image: minio/minio
+        image: ghcr.io/sree-sphere/minio-default:latest
         ports:
           - 9000:9000
         env:
@@ -22,8 +22,6 @@ jobs:
           --health-interval 5s
           --health-retries 5
           --health-timeout 10s
-
-
 
       rabbitmq:
         image: rabbitmq:3-management

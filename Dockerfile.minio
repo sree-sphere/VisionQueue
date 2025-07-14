@@ -1,0 +1,5 @@
+# Dockerfile.minio
+FROM minio/minio:latest
+
+ENTRYPOINT ["minio"]
+CMD ["server", "/data"]
