@@ -18,7 +18,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install uv
-          uv pip install --system "python-dotenv[cli]" pytest pytest-cov coveralls
+          uv pip install --system "python-dotenv[cli]" pytest pytest-cov coveralls httpx
           uv pip install --system -r requirements.txt
 
       - name: Run Tests
