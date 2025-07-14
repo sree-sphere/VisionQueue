@@ -21,7 +21,8 @@ jobs:
           uv pip install --system "python-dotenv[cli]" pytest pytest-cov coveralls
 
       - name: Run Tests
-        run: dotenv run -- pytest --cov=.
+        run: dotenv -f .env.ci run -- pytest --cov=.
+
 
       - name: Upload Coverage to Coveralls
         env:
