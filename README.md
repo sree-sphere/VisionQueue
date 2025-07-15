@@ -47,8 +47,8 @@ ___
 
 ```
 # Clone repo
-git clone https://github.com/sree-sphere/async-image-classifier.git
-cd async-image-classifier
+git clone https://github.com/sree-sphere/VisionQueue.git
+cd VisionQueue
 
 # Configure .env variables. Edit as needed.
 cp .env.example .env
