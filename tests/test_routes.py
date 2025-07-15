@@ -1,13 +1,14 @@
-# tests/test_routes.py
 import io
 import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from main import app
 from services.storage import upload_image
-import io
 
+# Mock upload_image() to avoid actual upload
 client = TestClient(app)
+
+# --- Fixtures for testing image upload endpoint ---
 
 @pytest.fixture
 def image_file():
@@ -22,6 +23,8 @@ def metadata_json():
         "source": "unit-test",
         "filename": "test.jpg"
     }
+
+# --- Tests for image upload endpoint ---
 
 def test_upload_image_success(image_file, metadata_json):
     response = client.post(
@@ -65,6 +68,8 @@ def test_upload_image_unsupported_format(image_file):
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported file type"
 
+# --- Tests for error handling in image upload ---
+
 @patch("api.routes.upload_image", side_effect=Exception("Simulated failure"))
 def test_upload_image_storage_failure(mock_upload, client):
     file_data = io.BytesIO(b"dummy image bytes")
@@ -98,6 +103,8 @@ def test_pipeline_submission_missing_id(mock_submit, client):
     )
     assert response.status_code == 500
     assert "Pipeline submission failed" in response.text
+
+# --- Tests for task status endpoint ---
 
 def test_task_status_pending():
     with patch("services.celery_worker.celery_app.AsyncResult") as mock_res:
